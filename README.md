@@ -11,7 +11,9 @@ cargo run -- transactions.csv > output.csv
 ## Assumptions
 - An invalid transaction should not halt the program. It should be ignored and continue.
 - Overdrafts (withdrawing past balance to go negative) is allowed [[1]].
-- Negative Deposits are not allowed (you can't insert negative negative money into an ATM).
+- Negative Deposits are not allowed (you can't insert debt into an ATM).
+- Negative Withdraws are not allowed (you can't add money to an ATM by taking out debt).
+- Any transaction made to a locked account is denied and therefore not tracked
 
 ## Testing Methodology
 - Unit tests for all individual functions

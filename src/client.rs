@@ -5,7 +5,7 @@ use std::collections::HashMap;
 /// A light tracking of a transaction previously processed by the client
 struct PreviousTransaction {
     amount: f32,
-    is_disputed: bool
+    is_disputed: bool,
 }
 
 impl PreviousTransaction {
@@ -13,7 +13,7 @@ impl PreviousTransaction {
         Self {
             amount,
             // A newly processed cannot automatically be in dispute but can be disputed later
-            is_disputed: false
+            is_disputed: false,
         }
     }
 }
@@ -27,7 +27,6 @@ pub struct Client {
     held: f32,
     total_funds: f32,
 }
-
 
 impl Client {
     /// Creates a new client. Primarily for use when there is no
@@ -43,11 +42,12 @@ impl Client {
     }
 
     /// Updates the client based on the tx if it is not locked
-    pub fn process_transaction(&mut self, tx: Transaction) -> Result<(), TransactionError>{
+    pub fn process_transaction(&mut self, tx: Transaction) -> Result<(), TransactionError> {
         if !self.is_locked {
             match tx {
                 // TODO: Handle all tx types
-                Transaction::Deposit {tx_id, amount, .. } => self.deposit(tx_id, amount)?,
+                Transaction::Deposit { tx_id, amount } => self.deposit(tx_id, amount)?,
+                Transaction::Withdraw { tx_id, amount } => self.withdraw(tx_id, amount)?,
 
                 _ => (),
             };
@@ -59,11 +59,25 @@ impl Client {
     /// handle a deposit transaction
     fn deposit(&mut self, tx_id: u32, amount: f32) -> Result<(), TransactionError> {
         if amount < 0.0 {
-            return Err(TransactionError::InvalidAmountError { amount } )
+            return Err(TransactionError::InvalidAmountError { amount });
         }
         self.available += amount;
         self.total_funds += amount;
-        self.transactions.insert(tx_id, PreviousTransaction::new(amount));
+        self.transactions
+            .insert(tx_id, PreviousTransaction::new(amount));
+
+        Ok(())
+    }
+
+    /// handle a withdrawl transaction
+    fn withdraw(&mut self, tx_id: u32, amount: f32) -> Result<(), TransactionError> {
+        if amount < 0.0 {
+            return Err(TransactionError::InvalidAmountError { amount });
+        }
+        self.available -= amount;
+        self.total_funds -= amount;
+        self.transactions
+            .insert(tx_id, PreviousTransaction::new(amount));
 
         Ok(())
     }
@@ -72,9 +86,7 @@ impl Client {
 #[derive(Error, Debug)]
 pub enum TransactionError {
     #[error("The amount specified by the transaction is invalid: {amount:?}")]
-    InvalidAmountError {
-        amount: f32
-    }
+    InvalidAmountError { amount: f32 },
 }
 
 #[cfg(test)]
@@ -86,7 +98,10 @@ pub mod test {
     fn locked_client_does_not_update() {
         let mut client = Client::new(1u16);
         client.is_locked = true;
-        let tx = Transaction::Deposit { tx_id: 1, amount: 32.0 };
+        let tx = Transaction::Deposit {
+            tx_id: 1,
+            amount: 32.0,
+        };
         client.process_transaction(tx).unwrap();
         assert_eq!(client.total_funds, 0.0)
     }
@@ -95,7 +110,10 @@ pub mod test {
     fn valid_transaction_processed() {
         // a processed transaction should be added to the clients transactions
         let mut client = Client::new(1u16);
-        let tx = Transaction::Deposit { tx_id: 1, amount: 32.0 };
+        let tx = Transaction::Deposit {
+            tx_id: 1,
+            amount: 32.0,
+        };
         client.process_transaction(tx).unwrap();
         assert_eq!(client.transactions.len(), 1)
     }
@@ -112,6 +130,21 @@ pub mod test {
     fn negative_deposit() {
         let mut client = Client::new(1u16);
         assert_eq!(client.deposit(1, -32.0).is_err(), true);
+        assert_eq!(client.available, 0.0);
+    }
+
+    #[test]
+    fn valid_withdrawl() {
+        let mut client = Client::new(1u16);
+        client.withdraw(1, 32.0).unwrap();
+        assert_eq!(client.available, -32.0);
+        assert_eq!(client.total_funds, -32.0);
+    }
+
+    #[test]
+    fn negative_withdrawl() {
+        let mut client = Client::new(1u16);
+        assert_eq!(client.withdraw(1, -32.0).is_err(), true);
         assert_eq!(client.available, 0.0);
     }
 }
