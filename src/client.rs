@@ -103,9 +103,15 @@ pub mod test {
     #[test]
     fn valid_deposit() {
         let mut client = Client::new(1u16);
-        let tx = Transaction::Deposit { tx_id: 1, amount: 32.0 };
-        client.process_transaction(tx).unwrap();
+        client.deposit(1, 32.0).unwrap();
         assert_eq!(client.available, 32.0);
         assert_eq!(client.total_funds, 32.0);
+    }
+
+    #[test]
+    fn negative_deposit() {
+        let mut client = Client::new(1u16);
+        assert_eq!(client.deposit(1, -32.0).is_err(), true);
+        assert_eq!(client.available, 0.0);
     }
 }
