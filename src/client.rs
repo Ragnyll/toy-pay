@@ -3,6 +3,7 @@ use crate::transaction::Transaction;
 use std::collections::HashMap;
 
 /// A light tracking of a transaction previously processed by the client
+#[derive(Debug)]
 struct PreviousTransaction {
     amount: f32,
     is_disputed: bool,
@@ -19,6 +20,7 @@ impl PreviousTransaction {
 }
 
 /// A client who can access and manipulate their funds
+#[derive(Debug)]
 pub struct Client {
     id: u16,
     transactions: HashMap<u32, PreviousTransaction>,
@@ -82,7 +84,7 @@ impl Client {
     }
 
     /// dispute a previous transaction
-    pub fn dispute(&mut self, tx_id: u32) -> Result<(), TransactionError> {
+    fn dispute(&mut self, tx_id: u32) -> Result<(), TransactionError> {
         if let Some(tx) = self.transactions.get_mut(&tx_id) {
             if tx.is_disputed {
                 return Err(TransactionError::PartnerDisputeError { tx_id });
@@ -98,7 +100,7 @@ impl Client {
     }
 
     /// resolves a disputed transaction
-    pub fn resolve_dispute(&mut self, tx_id: u32) -> Result<(), TransactionError> {
+    fn resolve_dispute(&mut self, tx_id: u32) -> Result<(), TransactionError> {
         if let Some(tx) = self.transactions.get_mut(&tx_id) {
             if !tx.is_disputed {
                 return Err(TransactionError::PartnerResolveError { tx_id });
@@ -112,6 +114,21 @@ impl Client {
         }
         Err(TransactionError::PartnerResolveError { tx_id })
     }
+
+    fn chargeback(&mut self, tx_id: u32) -> Result<(), TransactionError> {
+        if let Some(tx) = self.transactions.get_mut(&tx_id) {
+            if !tx.is_disputed {
+                return Err(TransactionError::PartnerChargebackError { tx_id });
+            }
+            self.is_locked = true;
+            self.held -= tx.amount;
+            self.total_funds -= tx.amount;
+            // Total funds remains constant
+
+            return Ok(());
+        }
+        Err(TransactionError::PartnerChargebackError { tx_id })
+    }
 }
 
 #[derive(Error, Debug)]
@@ -122,6 +139,8 @@ pub enum TransactionError {
     PartnerDisputeError { tx_id: u32 },
     #[error("The Resolve raised against transaction {tx_id:?} is invalid")]
     PartnerResolveError { tx_id: u32 },
+    #[error("The Chargeback raised against transaction {tx_id:?} is invalid")]
+    PartnerChargebackError { tx_id: u32 },
 }
 
 #[cfg(test)]
@@ -230,5 +249,29 @@ pub mod test {
         let mut client = Client::new(1u16);
         client.deposit(1, 32.0).unwrap();
         assert_eq!(client.resolve_dispute(1).is_err(), true);
+    }
+
+    #[test]
+    fn succesful_chargeback() {
+        let mut client = Client::new(1u16);
+        client.deposit(1, 32.0).unwrap();
+        client.dispute(1).unwrap();
+        client.chargeback(1).unwrap();
+        assert_eq!(client.is_locked, true);
+        assert_eq!(client.held, 0.0);
+        assert_eq!(client.total_funds, 0.0);
+    }
+
+    #[test]
+    fn transaction_to_chargeback_dne() {
+        let mut client = Client::new(1u16);
+        assert_eq!(client.chargeback(1).is_err(), true);
+    }
+
+    #[test]
+    fn transaction_to_chargeback_not_under_dispute() {
+        let mut client = Client::new(1u16);
+        client.deposit(1, 32.0).unwrap();
+        assert_eq!(client.chargeback(1).is_err(), true);
     }
 }
