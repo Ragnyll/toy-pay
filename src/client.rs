@@ -218,4 +218,17 @@ pub mod test {
         assert_eq!(client.held, 0.0);
         assert_eq!(client.available, 96.0);
     }
+
+    #[test]
+    fn transaction_to_resolve_dne() {
+        let mut client = Client::new(1u16);
+        assert_eq!(client.resolve_dispute(1).is_err(), true);
+    }
+
+    #[test]
+    fn transaction_to_resolve_not_under_dispute() {
+        let mut client = Client::new(1u16);
+        client.deposit(1, 32.0).unwrap();
+        assert_eq!(client.resolve_dispute(1).is_err(), true);
+    }
 }
