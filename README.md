@@ -9,7 +9,6 @@ cargo run -- transactions.csv > output.csv
 ```
 
 ## Assumptions
-- Overdrafts (withdrawing past balance to go negative) is allowed [[1]].
 - Negative Deposits are not allowed (you can't insert debt into an ATM).
 - Negative Withdraws are not allowed (you can't add money to an ATM by taking out debt).
 - Any transaction made to a locked account is denied and therefore not tracked
@@ -23,5 +22,3 @@ cargo run -- transactions.csv > output.csv
 ```
 cargo run -- ex.csv
 ```
-
-[1]: https://overdraftapps.com/can-i-withdraw-money-if-my-account-is-overdrawn/
