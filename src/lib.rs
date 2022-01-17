@@ -1,2 +1,2 @@
-mod client;
-mod transaction;
+pub mod client;
+pub mod transaction;
