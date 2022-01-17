@@ -96,6 +96,22 @@ impl Client {
         }
         Err(TransactionError::PartnerDisputeError { tx_id })
     }
+
+    /// resolves a disputed transaction
+    pub fn resolve_dispute(&mut self, tx_id: u32) -> Result<(), TransactionError> {
+        if let Some(tx) = self.transactions.get_mut(&tx_id) {
+            if !tx.is_disputed {
+                return Err(TransactionError::PartnerResolveError { tx_id });
+            }
+            tx.is_disputed = false;
+            self.available += tx.amount;
+            self.held -= tx.amount;
+            // Total funds remains constant
+
+            return Ok(());
+        }
+        Err(TransactionError::PartnerResolveError { tx_id })
+    }
 }
 
 #[derive(Error, Debug)]
@@ -104,6 +120,8 @@ pub enum TransactionError {
     InvalidAmountError { amount: f32 },
     #[error("The dispute raised against transaction {tx_id:?} is invalid")]
     PartnerDisputeError { tx_id: u32 },
+    #[error("The Resolve raised against transaction {tx_id:?} is invalid")]
+    PartnerResolveError { tx_id: u32 },
 }
 
 #[cfg(test)]
@@ -189,5 +207,15 @@ pub mod test {
         client.deposit(1, 32.0).unwrap();
         assert_eq!(client.dispute(1).is_ok(), true);
         assert_eq!(client.dispute(1).is_err(), true);
+    }
+
+    #[test]
+    fn successful_resolve_dispute() {
+        let mut client = Client::new(1u16);
+        client.deposit(1, 32.0).unwrap();
+        client.dispute(1).unwrap();
+        assert_eq!(client.resolve_dispute(1).is_ok(), true);
+        assert_eq!(client.held, 0.0);
+        assert_eq!(client.available, 96.0);
     }
 }
