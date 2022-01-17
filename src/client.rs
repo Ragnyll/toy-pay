@@ -151,7 +151,6 @@ impl ClientRecord {
             // if it is a round number
             // unwrap is safe because n is known to be a f32 at the start
             format!("{n:.4}").parse::<f32>().unwrap()
-
         }
         Self {
             client: client.id,
