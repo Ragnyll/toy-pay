@@ -23,8 +23,10 @@ fn main() {
     };
 
     let clients = clients_process_all_tx(&mut csv_reader);
-    let clients = clients.values().map(|c| ClientRecord::from_client(c)).collect();
-    let mut csv_writer = csv::WriterBuilder::new().has_headers(true).from_writer(io::stdout());
+    let clients = clients.values().map(ClientRecord::from_client).collect();
+    let mut csv_writer = csv::WriterBuilder::new()
+        .has_headers(true)
+        .from_writer(io::stdout());
 
     match write_all_client_records(clients, &mut csv_writer) {
         Ok(_) => (),
@@ -52,21 +54,23 @@ fn clients_process_all_tx<R: io::Read>(rdr: &mut csv::Reader<R>) -> HashMap<u16,
             Some(c) => {
                 #[allow(unused_must_use)]
                 let _ = c.process_transaction(transaction);
-            },
+            }
             // create a new client, have it process the transaction and add it to the record
             None => {
                 let mut new_client = Client::new(record.client);
                 let _ = new_client.process_transaction(transaction);
                 clients.insert(record.client, new_client);
-
-            },
+            }
         }
     }
 
     clients
 }
 
-fn write_all_client_records<W: io::Write>(clients: Vec<ClientRecord>, wtr: &mut csv::Writer<W>) -> Result<(), csv::Error> {
+fn write_all_client_records<W: io::Write>(
+    clients: Vec<ClientRecord>,
+    wtr: &mut csv::Writer<W>,
+) -> Result<(), csv::Error> {
     for client in clients {
         wtr.serialize(client)?;
     }
