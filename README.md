@@ -14,6 +14,8 @@ cargo run -- transactions.csv > output.csv
 - Negative Deposits are not allowed (you can't insert debt into an ATM).
 - Negative Withdraws are not allowed (you can't add money to an ATM by taking out debt).
 - Any transaction made to a locked account is denied and therefore not tracked
+- Disputing a currently disputed transaction is an invalid partner action and should be ignored
+- The reversing a transaction part of a dispute is ignored in interest of the clause "this means the avaiable funds should decrease by the amount disputed..."
 
 ## Testing Methodology
 - Unit tests for all individual functions
