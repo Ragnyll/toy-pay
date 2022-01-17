@@ -12,11 +12,19 @@ pub enum Transaction {
     Chargeback { tx_id: u32 },
 }
 
-impl Transaction  {
-    pub fn from_input_transaction(itx: &InputTransaction) -> Result<Self, TransactionConversionError> {
+impl Transaction {
+    pub fn from_input_transaction(
+        itx: &InputTransaction,
+    ) -> Result<Self, TransactionConversionError> {
         match itx.tx_type.as_str() {
-            "withdrawal" => Ok(Transaction::Withdraw { tx_id: itx.tx_id, amount: itx.amount.unwrap() }),
-            "deposit" => Ok(Transaction::Deposit { tx_id: itx.tx_id, amount: itx.amount.unwrap() }),
+            "withdrawal" => Ok(Transaction::Withdraw {
+                tx_id: itx.tx_id,
+                amount: itx.amount.unwrap(),
+            }),
+            "deposit" => Ok(Transaction::Deposit {
+                tx_id: itx.tx_id,
+                amount: itx.amount.unwrap(),
+            }),
             "dispute" => Ok(Transaction::Dispute { tx_id: itx.tx_id }),
             "resolve" => Ok(Transaction::Resolve { tx_id: itx.tx_id }),
             "chargeback" => Ok(Transaction::Resolve { tx_id: itx.tx_id }),
@@ -28,12 +36,12 @@ impl Transaction  {
 /// A Transaction from and input file. Not for use by clients.
 #[derive(Deserialize, Debug)]
 pub struct InputTransaction {
-    #[serde(rename="type")]
+    #[serde(rename = "type")]
     tx_type: String,
     pub client: u16,
-    #[serde(rename="tx")]
+    #[serde(rename = "tx")]
     tx_id: u32,
-    amount: Option<f32>
+    amount: Option<f32>,
 }
 
 #[derive(Error, Debug)]

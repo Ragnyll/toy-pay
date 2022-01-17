@@ -20,7 +20,6 @@ cargo run -- transactions.csv > output.csv
 
 ## Testing Methodology
 - Unit tests for all individual functions
-- Integration tests for series of actions
 - test file for io validation
 
 [1]: https://overdraftapps.com/can-i-withdraw-money-if-my-account-is-overdrawn/

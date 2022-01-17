@@ -14,7 +14,7 @@ impl PreviousTransaction {
     fn new(amount: f32) -> Self {
         Self {
             amount,
-            // A newly processed cannot automatically be in dispute but can be disputed later
+            // A newly processed cannot automatically be in dispute
             is_disputed: false,
         }
     }
@@ -71,13 +71,14 @@ impl Client {
         Ok(())
     }
 
-    /// handle a withdrawl transaction
+    /// handle a withdrawal transaction
     fn withdraw(&mut self, tx_id: u32, amount: f32) -> Result<(), TransactionError> {
         if amount < 0.0 {
             return Err(TransactionError::InvalidAmountError { amount });
         }
         self.available -= amount;
         self.total_funds -= amount;
+        // a withdrawal is a negative balance change
         self.transactions
             .insert(tx_id, PreviousTransaction::new(amount));
 
@@ -91,7 +92,7 @@ impl Client {
                 return Err(TransactionError::PartnerDisputeError { tx_id });
             }
             tx.is_disputed = true;
-            self.available += tx.amount;
+            self.available -= tx.amount;
             self.held += tx.amount;
             // Total funds remains constant
 
@@ -149,7 +150,7 @@ impl ClientRecord {
             available: client.available,
             held: client.held,
             total: client.total_funds,
-            locked: client.is_locked
+            locked: client.is_locked,
         }
     }
 }
@@ -211,7 +212,7 @@ pub mod test {
     }
 
     #[test]
-    fn valid_withdrawl() {
+    fn valid_withdrawal() {
         let mut client = Client::new(1u16);
         client.withdraw(1, 32.0).unwrap();
         assert_eq!(client.available, -32.0);
@@ -219,20 +220,18 @@ pub mod test {
     }
 
     #[test]
-    fn negative_withdrawl() {
+    fn negative_withdrawal() {
         let mut client = Client::new(1u16);
         assert_eq!(client.withdraw(1, -32.0).is_err(), true);
         assert_eq!(client.available, 0.0);
     }
 
     #[test]
-    // TODO COME BACK TO THINK ABOUT REVERSING! disputing a deposit seems like it should decrease
-    // funds
     fn succesful_dispute() {
         let mut client = Client::new(1u16);
         client.deposit(1, 32.0).unwrap();
         client.dispute(1).unwrap();
-        assert_eq!(client.available, 64.0);
+        assert_eq!(client.available, 0.0);
         assert_eq!(client.held, 32.0);
         assert_eq!(client.transactions.get(&1).unwrap().is_disputed, true);
     }
@@ -258,7 +257,7 @@ pub mod test {
         client.dispute(1).unwrap();
         assert_eq!(client.resolve_dispute(1).is_ok(), true);
         assert_eq!(client.held, 0.0);
-        assert_eq!(client.available, 96.0);
+        assert_eq!(client.available, 32.0);
     }
 
     #[test]
