@@ -74,6 +74,8 @@ impl Client {
     fn withdraw(&mut self, tx_id: u32, amount: f32) -> Result<(), TransactionError> {
         if amount < 0.0 {
             return Err(TransactionError::InvalidAmountError { amount });
+        } else if amount > self.available {
+            return Err(TransactionError::OverdraftError { amount });
         }
         self.available -= amount;
         self.total_funds -= amount;
@@ -166,6 +168,8 @@ impl ClientRecord {
 pub enum TransactionError {
     #[error("The amount specified by the transaction is invalid: {amount:?}")]
     InvalidAmountError { amount: f32 },
+    #[error("The amount specified by the transaction {amount:?} cannot exceed avialble founds")]
+    OverdraftError { amount: f32 },
     #[error("The dispute raised against transaction {tx_id:?} is invalid")]
     PartnerDisputeError { tx_id: u32 },
     #[error("The Resolve raised against transaction {tx_id:?} is invalid")]
@@ -221,9 +225,16 @@ pub mod test {
     #[test]
     fn valid_withdrawal() {
         let mut client = Client::new(1u16);
+        client.deposit(1, 33.0).unwrap();
         client.withdraw(1, 32.0).unwrap();
-        assert_eq!(client.available, -32.0);
-        assert_eq!(client.total_funds, -32.0);
+        assert_eq!(client.available, 1.0);
+        assert_eq!(client.total_funds, 1.0);
+    }
+
+    #[test]
+    fn withdraw_cannot_overdraft() {
+        let mut client = Client::new(1u16);
+        assert_eq!(client.withdraw(1, 32.0).is_err(), true);
     }
 
     #[test]
