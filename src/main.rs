@@ -46,7 +46,7 @@ fn main() {
             },
             // create a new client, have it process the transaction and add it to the record
             None => {
-                let mut new_client = Client::new(record.client.clone());
+                let mut new_client = Client::new(record.client);
                 let _ = new_client.process_transaction(transaction);
                 clients.insert(record.client, new_client);
 

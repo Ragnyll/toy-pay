@@ -35,7 +35,7 @@ impl Client {
     /// Creates a new client. Primarily for use when there is no
     pub fn new(id: u16) -> Self {
         Self {
-            id: id,
+            id,
             transactions: HashMap::new(),
             is_locked: false,
             available: 0.0,
@@ -51,7 +51,8 @@ impl Client {
                 Transaction::Deposit { tx_id, amount } => self.deposit(tx_id, amount)?,
                 Transaction::Withdraw { tx_id, amount } => self.withdraw(tx_id, amount)?,
                 Transaction::Dispute { tx_id } => self.dispute(tx_id)?,
-                _ => (),
+                Transaction::Resolve { tx_id } => self.resolve_dispute(tx_id)?,
+                Transaction::Chargeback { tx_id } => self.chargeback(tx_id)?,
             };
         }
 

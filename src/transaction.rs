@@ -1,5 +1,4 @@
 use serde::Deserialize;
-use std::convert::From;
 use thiserror::Error;
 
 /// A Transaction that can be processed by a client
