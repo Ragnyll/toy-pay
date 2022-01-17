@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use thiserror::Error;
 
 /// A light tracking of a transaction previously processed by the client
-#[derive(Debug)]
 struct PreviousTransaction {
     amount: f32,
     is_disputed: bool,
@@ -145,11 +144,20 @@ pub struct ClientRecord {
 
 impl ClientRecord {
     pub fn from_client(client: &Client) -> Self {
+        // force a precison of 4 decimal places max
+        // WARNING: format like this implictly calls round
+        fn force_precision_to_4_decimal_places(n: f32) -> f32 {
+            // this will force a string precision of 4 decimal places that will get truncated down
+            // if it is a round number
+            // unwrap is safe because n is known to be a f32 at the start
+            format!("{n:.4}").parse::<f32>().unwrap()
+
+        }
         Self {
             client: client.id,
-            available: client.available,
-            held: client.held,
-            total: client.total_funds,
+            available: force_precision_to_4_decimal_places(client.available),
+            held: force_precision_to_4_decimal_places(client.held),
+            total: force_precision_to_4_decimal_places(client.total_funds),
             locked: client.is_locked,
         }
     }

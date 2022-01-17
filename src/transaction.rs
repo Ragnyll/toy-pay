@@ -27,7 +27,7 @@ impl Transaction {
             }),
             "dispute" => Ok(Transaction::Dispute { tx_id: itx.tx_id }),
             "resolve" => Ok(Transaction::Resolve { tx_id: itx.tx_id }),
-            "chargeback" => Ok(Transaction::Resolve { tx_id: itx.tx_id }),
+            "chargeback" => Ok(Transaction::Chargeback { tx_id: itx.tx_id }),
             _ => Err(TransactionConversionError::UnknownTransactionType { tx_id: itx.tx_id }),
         }
     }
