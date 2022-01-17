@@ -22,6 +22,7 @@ impl PreviousTransaction {
 /// A client who can access and manipulate their funds
 #[derive(Debug)]
 pub struct Client {
+    #[allow(unused)]
     id: u16,
     transactions: HashMap<u32, PreviousTransaction>,
     is_locked: bool,
