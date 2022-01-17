@@ -1,6 +1,7 @@
-use thiserror::Error;
 use crate::transaction::Transaction;
+use serde::Serialize;
 use std::collections::HashMap;
+use thiserror::Error;
 
 /// A light tracking of a transaction previously processed by the client
 #[derive(Debug)]
@@ -20,15 +21,13 @@ impl PreviousTransaction {
 }
 
 /// A client who can access and manipulate their funds
-#[derive(Debug)]
 pub struct Client {
-    #[allow(unused)]
     id: u16,
     transactions: HashMap<u32, PreviousTransaction>,
-    is_locked: bool,
     available: f32,
     held: f32,
     total_funds: f32,
+    is_locked: bool,
 }
 
 impl Client {
@@ -130,6 +129,28 @@ impl Client {
             return Ok(());
         }
         Err(TransactionError::PartnerChargebackError { tx_id })
+    }
+}
+
+/// A lightweight client record for output needs
+#[derive(Serialize)]
+pub struct ClientRecord {
+    client: u16,
+    available: f32,
+    held: f32,
+    total: f32,
+    locked: bool,
+}
+
+impl ClientRecord {
+    pub fn from_client(client: &Client) -> Self {
+        Self {
+            client: client.id,
+            available: client.available,
+            held: client.held,
+            total: client.total_funds,
+            locked: client.is_locked
+        }
     }
 }
 
