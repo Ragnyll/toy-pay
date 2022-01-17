@@ -1,8 +1,7 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
+use std::io;
 use std::process;
-use toy_pay::client::Client;
+use toy_pay::client::{Client, ClientRecord};
 use toy_pay::transaction::{Transaction, InputTransaction};
 
 fn main() {
@@ -15,22 +14,32 @@ fn main() {
         }
     };
 
-    let file = match File::open(&fname) {
-        Ok(f) => f,
+    let mut csv_reader = match csv::Reader::from_path(&fname) {
+        Ok(rdr) => rdr,
         Err(_) => {
             eprintln!("{fname} failed to open");
             process::exit(exitcode::NOINPUT);
         }
     };
 
-    let reader = BufReader::new(file);
-    let mut csv_reader = csv::ReaderBuilder::new()
-        .has_headers(true)
-        .from_reader(reader);
+    let clients = clients_process_all_tx(&mut csv_reader);
+    let clients = clients.values().map(|c| ClientRecord::from_client(c)).collect();
+    let mut csv_writer = csv::WriterBuilder::new().has_headers(true).from_writer(io::stdout());
 
+    match write_all_client_records(clients, &mut csv_writer) {
+        Ok(_) => (),
+        Err(err) => {
+            eprintln!("Failed to write client data: {err:?}");
+            process::exit(exitcode::IOERR);
+        }
+    };
+}
+
+/// use the csv reader to process all the transactions into clients
+fn clients_process_all_tx<R: io::Read>(rdr: &mut csv::Reader<R>) -> HashMap<u16, Client> {
     let mut clients: HashMap<u16, Client> = HashMap::new();
 
-    for line in csv_reader.deserialize() {
+    for line in rdr.deserialize() {
         let record: InputTransaction = line.unwrap();
         let transaction = match Transaction::from_input_transaction(&record) {
             Ok(tx) => tx,
@@ -54,8 +63,21 @@ fn main() {
         }
     }
 
-    for client in clients {
-        println!("{:?}", client);
-    }
+    clients
 }
 
+fn write_all_client_records<W: io::Write>(clients: Vec<ClientRecord>, wtr: &mut csv::Writer<W>) -> Result<(), csv::Error> {
+    for client in clients {
+        wtr.serialize(client)?;
+    }
+
+    match wtr.flush() {
+        Ok(_) => (),
+        Err(_) => {
+            eprintln!("unable to flush csv writer buffer");
+            process::exit(exitcode::IOERR);
+        }
+    };
+
+    Ok(())
+}
